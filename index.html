@@ -5,16 +5,17 @@
 <script src="clock.js"></script>
 <script>
 var display = _.range(10);
+var degradations = 8;
 $(function() {
   [false, true].forEach(function(replacement) {
-    _.range(8).map(function(degrade_n) {
+    _.range(degradations).map(function(degrade_n) {
       var $div = $('<fieldset></fieldset>').appendTo(document.body);
       $div.append('<legend>Randomizing ' + degrade_n + ' segments ' + (replacement ? 'with' : 'without') + ' replacement</legend>');
       display.forEach(function(digit, i) {
         var original_segments = digit_segments[digit];
         var degraded_segments = degradeSegments(original_segments, degrade_n, replacement);
 
-        $('<span></span>').appendTo($div).digit(degraded_segments);
+        $('<span></span>').appendTo($div).digit(degraded_segments, {background: 'brown', foreground: 'orange', noise: 40});
       });
     });
   });
@@ -23,6 +24,6 @@ $(function() {
 <style>
 fieldset {
   margin: 10px 0;
-  padding: 10px;
+  padding: 5px;
 }
 </style>

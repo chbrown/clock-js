@@ -137,12 +137,76 @@ function single(canvas, digits) {
   ctx.restore();
 }
 
-$.fn.digit = function(segments) {
-  var attrs = {width: 88, height: 119};
+$.fn.digit = function(segments, opts) {
+  opts = _.extend({background: 'white', foreground: 'black', hmargin: 10, vmargin: 10, noise: 0}, opts);
+
+  var width = 88;
+  var height = 119;
+  var attrs = {width: width + opts.hmargin * 2, height: height + opts.vmargin * 2};
   $(this).attr(attrs).each(function(i, el) {
     var $canvas = $('<canvas></canvas>').attr(attrs).appendTo(el);
     var canvas = $canvas[0];
     var ctx = canvas.getContext('2d');
+    ctx.fillStyle = opts.background;
+    ctx.fillRect(0, 0, attrs.width, attrs.height);
+
+    ctx.save();
+    ctx.translate(opts.hmargin, opts.vmargin);
+    ctx.fillStyle = opts.foreground;
     drawSegments(segments, ctx);
+    ctx.restore();
+    if (opts.noise) {
+      randomNoise(canvas, {diff: opts.noise});
+    }
   });
 };
+
+// noise code from https://gist.github.com/donpark/1796361
+/* Following canvas-based Perlin generation code originates from
+ * iron_wallaby's code at: http://www.ozoneasylum.com/30982
+ */
+function randomNoise(canvas, opts) {
+  opts = _.extend({x: 0, y: 0, width: canvas.width, height: canvas.height, diff: 255}, opts);
+  var half_diff = opts.diff / 2;
+
+  var ctx = canvas.getContext('2d');
+  var imageData = ctx.getImageData(opts.x, opts.y, opts.width, opts.height);
+  var array = imageData.data;
+  // console.log(array.subarray(0, 1000));
+  for (var i = 0, n = array.length; i < n; i += 4) {
+    var r = Math.random() * opts.diff - half_diff | 0;
+    array[i  ] += r; //array[i  ];
+    array[i+1] += r; //array[i+1];
+    array[i+2] += r; //array[i+2];
+    // pixels[i+3] = opts.alpha; // just leave the alpha
+  }
+  ctx.putImageData(imageData, opts.x, opts.y);
+  return canvas;
+}
+
+function createCanvas(width, height) {
+  var canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  return canvas;
+}
+
+function perlinNoise(canvas) {
+  // not so sure about this one, doesn't work, at least not with my modifications to randomNoise
+  var noise = createCanvas(canvas.width, canvas.height);
+  randomNoise(noise);
+  var ctx = canvas.getContext('2d');
+  ctx.save();
+
+  /* Scale random iterations onto the canvas to generate Perlin noise. */
+  for (var size = 4; size <= noise.width; size *= 2) {
+      var x = (Math.random() * (noise.width - size)) | 0;
+      var y = (Math.random() * (noise.height - size)) | 0;
+      ctx.globalAlpha = 4.0 / size;
+      ctx.drawImage(noise, x, y, size, size, 0, 0, canvas.width, canvas.height);
+  }
+
+  ctx.restore();
+  return canvas;
+}
+

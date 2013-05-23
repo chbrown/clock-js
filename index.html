@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="lib/jquery.js"></script>
+<script src="lib/underscore.js"></script>
+<script src="clock.js"></script>
+<script>
+var display = _.range(10);
+$(function() {
+  [false, true].forEach(function(replacement) {
+    _.range(8).map(function(degrade_n) {
+      var $div = $('<fieldset></fieldset>').appendTo(document.body);
+      $div.append('<legend>Randomizing ' + degrade_n + ' segments ' + (replacement ? 'with' : 'without') + ' replacement</legend>');
+      display.forEach(function(digit, i) {
+        var original_segments = digit_segments[digit];
+        var degraded_segments = degradeSegments(original_segments, degrade_n, replacement);
+
+        $('<span></span>').appendTo($div).digit(degraded_segments);
+      });
+    });
+  });
+});
+</script>
+<style>
+fieldset {
+  margin: 10px 0;
+  padding: 10px;
+}
+</style>

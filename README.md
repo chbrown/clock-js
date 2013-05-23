@@ -2,7 +2,7 @@
 
 Please see sample readout at:
 
-    https://raw.github.com/chbrown/clock-js/master/index.html
+    http://chbrown.github.io/clock-js/
 
 # License
 

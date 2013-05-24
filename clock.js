@@ -1,3 +1,5 @@
+'use strict'; /*jslint node: true, indent: 2 */
+/*global _: true, $: true */
 // requires underscore & jquery/zepto
 var segment_path_functions = {
   0: function(ctx) {
@@ -65,19 +67,6 @@ var segment_path_functions = {
   }
 };
 
-// the present segments:
-// [
-//   [0, 1, 2,    4, 5, 6], // 0
-//   [      2,       5   ], // 1
-//   [0,    2, 3, 4,    6], // 2
-//   [0,    2, 3,    5, 6], // 3
-//   [   1, 2, 3,    5   ], // 4
-//   [0, 1,    3,    5, 6], // 5
-//   [0, 1,    3, 4, 5, 6], // 6
-//   [0,    2,       5   ], // 7
-//   [0, 1, 2, 3, 4, 5, 6], // 8
-//   [0, 1, 2, 3,    5, 6]  // 9
-// ];
 // the presence of segments (booleans)
 var digit_segments = [
   [1, 1, 1, 0, 1, 1, 1], // 0
@@ -128,7 +117,7 @@ function single(canvas, digits) {
   canvas.width = 88 * digits.length;
   var ctx = canvas.getContext('2d');
   ctx.save();
-  display.forEach(function(number, i) {
+  digits.forEach(function(number, i) {
     var segments = digit_segments[number];
     var degraded_segments = degradeSegments(segments, 1);
     drawSegments(degraded_segments, ctx);
@@ -156,7 +145,8 @@ $.fn.digit = function(segments, opts) {
     drawSegments(segments, ctx);
     ctx.restore();
     if (opts.noise) {
-      randomNoise(canvas, {diff: opts.noise});
+      // perlinNoise(canvas);
+      addCanvasNoise(canvas, {diff: opts.noise});
     }
   });
 };
@@ -165,22 +155,15 @@ $.fn.digit = function(segments, opts) {
 /* Following canvas-based Perlin generation code originates from
  * iron_wallaby's code at: http://www.ozoneasylum.com/30982
  */
-function randomNoise(canvas, opts) {
-  opts = _.extend({x: 0, y: 0, width: canvas.width, height: canvas.height, diff: 255}, opts);
-  var half_diff = opts.diff / 2;
+function addCanvasNoise(canvas, opts) {
+  // destructive. returns the same canvas it's given.
+  // alpha: 0 is transparent, 255 is fully visible.
+  opts = _.extend({width: canvas.width, height: canvas.height, diff: 255}, opts);
 
   var ctx = canvas.getContext('2d');
-  var imageData = ctx.getImageData(opts.x, opts.y, opts.width, opts.height);
-  var array = imageData.data;
-  // console.log(array.subarray(0, 1000));
-  for (var i = 0, n = array.length; i < n; i += 4) {
-    var r = Math.random() * opts.diff - half_diff | 0;
-    array[i  ] += r; //array[i  ];
-    array[i+1] += r; //array[i+1];
-    array[i+2] += r; //array[i+2];
-    // pixels[i+3] = opts.alpha; // just leave the alpha
-  }
-  ctx.putImageData(imageData, opts.x, opts.y);
+  var image = ctx.getImageData(0, 0, opts.width, opts.height);
+  addNoiseImage(image, opts.diff);
+  ctx.putImageData(image, 0, 0);
   return canvas;
 }
 
@@ -191,21 +174,51 @@ function createCanvas(width, height) {
   return canvas;
 }
 
+function randomizeImage(image, opts) {
+  opts = _.extend({min: 0, max: 255, alpha: 255}, opts);
+  var range = opts.max - opts.min;
+  for (var i = 0, n = image.data.length; i < n; i += 4) {
+    var r = Math.random() * range + opts.min | 0;
+    image.data[i  ] = image.data[i+1] = image.data[i+2] = r;
+    image.data[i+3] = opts.alpha;
+  }
+  return image;
+}
+function addNoiseImage(image, diff) {
+  var range = diff || 255;
+  var min = range / 2;
+  for (var i = 0, n = image.data.length; i < n; i += 4) {
+    var r = Math.random() * range - min | 0;
+    image.data[i  ] += r;
+    image.data[i+1] += r;
+    image.data[i+2] += r;
+    // image.data[i+3] // just leave the alpha
+  }
+  return image;
+}
+
+
 function perlinNoise(canvas) {
-  // not so sure about this one, doesn't work, at least not with my modifications to randomNoise
-  var noise = createCanvas(canvas.width, canvas.height);
-  randomNoise(noise);
   var ctx = canvas.getContext('2d');
   ctx.save();
 
-  /* Scale random iterations onto the canvas to generate Perlin noise. */
-  for (var size = 4; size <= noise.width; size *= 2) {
-      var x = (Math.random() * (noise.width - size)) | 0;
-      var y = (Math.random() * (noise.height - size)) | 0;
-      ctx.globalAlpha = 4.0 / size;
-      ctx.drawImage(noise, x, y, size, size, 0, 0, canvas.width, canvas.height);
-  }
+  var noise_image = ctx.createImageData(canvas.width, canvas.height);
+  randomizeImage(noise_image, {alpha: 64});
 
+  var noise_canvas = createCanvas(canvas.width, canvas.height);
+  noise_canvas.getContext('2d').putImageData(noise_image, 0, 0);
+
+  /* Scale random iterations onto the canvas to generate Perlin noise. */
+  for (var size = 4; size <= canvas.width; size *= 2) {
+    var x = Math.random() * (canvas.width - size) | 0;
+    var y = Math.random() * (canvas.height - size) | 0;
+    ctx.globalAlpha = 4 / size;
+    // .putImageData(imgData,x,y,dirtyX,dirtyY,dirtyWidth,dirtyHeight);
+    // .drawImage(img,sx,sy,swidth,sheight,x,y,width,height);
+    // drawImage(source, clip this much of source, put to here on ctx);
+    // putImageData doesn't allow clipping the source data.
+    ctx.drawImage(noise_canvas, x, y, size, size, 0, 0, canvas.width, canvas.height);
+  }
   ctx.restore();
   return canvas;
 }

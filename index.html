@@ -15,7 +15,8 @@ $(function() {
         var original_segments = digit_segments[digit];
         var degraded_segments = degradeSegments(original_segments, degrade_n, replacement);
 
-        $('<span></span>').appendTo($div).digit(degraded_segments, {background: 'brown', foreground: 'orange', noise: 32});
+        $('<span></span>').appendTo($div).digit(degraded_segments,
+          {width: 50, height: 77, background: 'brown', foreground: 'orange', noise: 32});
       });
     });
   });

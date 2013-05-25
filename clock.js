@@ -1,6 +1,8 @@
 'use strict'; /*jslint node: true, indent: 2 */
 /*global _: true, $: true */
 // requires underscore & jquery/zepto
+var original_width = 88;
+var original_height = 119;
 var segment_path_functions = {
   0: function(ctx) {
     ctx.moveTo(22.5, 2.6);
@@ -127,11 +129,11 @@ function single(canvas, digits) {
 }
 
 $.fn.digit = function(segments, opts) {
-  opts = _.extend({background: 'white', foreground: 'black', hmargin: 10, vmargin: 10, noise: 0}, opts);
+  opts = _.extend({
+    width: original_width, height: original_height, hmargin: 10, vmargin: 10,
+    background: 'white', foreground: 'black', noise: 0}, opts);
 
-  var width = 88;
-  var height = 119;
-  var attrs = {width: width + opts.hmargin * 2, height: height + opts.vmargin * 2};
+  var attrs = {width: opts.width + opts.hmargin * 2, height: opts.height + opts.vmargin * 2};
   $(this).attr(attrs).each(function(i, el) {
     var $canvas = $('<canvas></canvas>').attr(attrs).appendTo(el);
     var canvas = $canvas[0];
@@ -141,6 +143,7 @@ $.fn.digit = function(segments, opts) {
 
     ctx.save();
     ctx.translate(opts.hmargin, opts.vmargin);
+    ctx.scale(opts.width / original_width, opts.height / original_height);
     ctx.fillStyle = opts.foreground;
     drawSegments(segments, ctx);
     ctx.restore();
